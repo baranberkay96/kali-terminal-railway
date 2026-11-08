@@ -9,7 +9,9 @@
 | nginx 1.30 | Kali package `nginx` | BSD-2-Clause | Basic-auth reverse proxy. The config was written for this template |
 | tmux 3.7 | Kali package `tmux` | ISC | Persistent sessions |
 | tini 0.19.0 | Kali package `tini` | MIT | Init and child subreaper |
-| nmap, masscan, sqlmap, ffuf, gobuster, feroxbuster, dirb, whatweb, wfuzz, nuclei, subfinder, httpx-toolkit, dnsrecon, theHarvester, sslscan, hydra, john, wordlists, netexec, impacket-scripts, smbclient, enum4linux-ng, exploitdb, kali-linux-core and the everyday CLI tools | Kali packages | Each package's own license (nmap: Nmap Public Source License; others GPL, MIT, BSD and similar) | Installed unmodified from the Kali archive |
+| nmap, sqlmap, ffuf, gobuster, feroxbuster, dirb, whatweb, wfuzz, nuclei, subfinder, httpx-toolkit, dnsrecon, theHarvester, sslscan, hydra, john, wordlists, netexec, impacket-scripts, smbclient, enum4linux-ng, exploitdb, kali-linux-core and the everyday CLI tools | Kali packages | Each package's own license (nmap: Nmap Public Source License; others GPL, MIT, BSD and similar) | Installed unmodified from the Kali archive |
+
+Changes to installed Kali files: file capabilities are removed from all binaries (Railway's containers cannot exec binaries whose capabilities they lack), Kali's `/usr/bin/nmap` wrapper is diverted with `dpkg-divert` to a symlink to `/usr/lib/nmap/nmap`, and Kali's login messages are turned off through `/etc/kali-motd/disable-all`. No package files are edited.
 
 Optional packages named in `KALI_EXTRA_PACKAGES` are installed from the Kali archive at build time under their own licenses.
 

@@ -9,9 +9,11 @@
   Sessions:  tmux keeps this shell running when the tab closes. Reopen the URL
              to resume. New window: Ctrl-b c. Next: Ctrl-b n. Detach: Ctrl-b d.
              Separate session: add ?arg=work to the URL.
-  Tools:     nmap, masscan, sqlmap, ffuf, gobuster, feroxbuster, nuclei,
-             hydra, john, netexec, impacket-*, enum4linux-ng, searchsploit,
-             wordlists in /usr/share/wordlists. Root: sudo -i.
+  Tools:     nmap (TCP connect scans), sqlmap, ffuf, gobuster, feroxbuster,
+             nuclei, hydra, john, netexec, impacket-*, enum4linux-ng,
+             searchsploit, wordlists in /usr/share/wordlists. Root: sudo -i.
+  Network:   no raw sockets on Railway: SYN, UDP and OS scans and packet
+             capture do not work. ping works with sudo.
   Packages:  sudo apt update && sudo apt install PACKAGE works until the next
              redeploy. To keep a package (metasploit-framework, or
              kali-linux-headless for the full set), add it to the

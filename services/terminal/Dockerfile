@@ -38,8 +38,8 @@ RUN apt-get update \
  && rm -f /etc/nginx/sites-enabled/default \
  && rm -rf /var/lib/apt/lists/*
 
-# Command-line security tools. Recon: nmap, masscan, dnsrecon, subfinder,
-# httpx, whois, dig. Web: sqlmap, gobuster, ffuf, feroxbuster, dirb, whatweb,
+# Command-line security tools. Recon: nmap, dnsrecon, subfinder, httpx,
+# theHarvester, whois, dig. Web: sqlmap, gobuster, ffuf, feroxbuster, dirb, whatweb,
 # wfuzz, nuclei, sslscan. Passwords: hydra, john, wordlists (rockyou).
 # Windows/AD: smbclient, enum4linux-ng, netexec, impacket. Reference:
 # searchsploit (exploitdb). GUI tools are left out: this is a terminal.
@@ -47,7 +47,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       bind9-dnsutils dirb dnsrecon enum4linux-ng exploitdb feroxbuster ffuf \
       gobuster httpx-toolkit hydra impacket-scripts john kali-linux-core \
-      masscan netexec nmap nuclei smbclient sqlmap sslscan subfinder \
+      netexec nmap nuclei smbclient sqlmap sslscan subfinder \
       theharvester whatweb wfuzz whois wordlists \
  && rm -rf /var/lib/apt/lists/*
 
@@ -68,14 +68,19 @@ RUN set -eux; \
 # kernel refuses to exec a binary whose file capabilities exceed that set:
 # Kali's nmap (cap_net_raw,cap_net_admin) fails with "Operation not permitted"
 # for every user, root included. Stripping the file capabilities lets those
-# tools run with whatever the container allows. Kali's "cloud installation"
-# login banner is turned off; this template prints its own.
+# tools run with whatever the container allows. Kali's /usr/bin/nmap wrapper
+# adds --privileged for non-root users, which only works with those
+# capabilities, so it is diverted to the plain nmap binary. Kali's login
+# messages ("minimal installation", "cloud installation") are turned off;
+# this template prints its own.
 RUN set -eux; \
     caps="$(getcap -r /usr /opt 2> /dev/null || true)"; \
     for bin in $(printf '%s\n' "$caps" | awk 'NF {print $1}'); do setcap -r "$bin"; done; \
     test -z "$(getcap -r /usr /opt 2> /dev/null || true)"; \
+    dpkg-divert --local --rename --divert /usr/bin/nmap.kali-wrapper --add /usr/bin/nmap; \
+    ln -s /usr/lib/nmap/nmap /usr/bin/nmap; \
     install -d /etc/kali-motd; \
-    touch /etc/kali-motd/disable-cloud-warning
+    touch /etc/kali-motd/disable-all
 
 # The login user. It has a fixed uid 1000 so file ownership on the volume stays
 # stable across image updates. New homes get Kali's default dotfiles plus one

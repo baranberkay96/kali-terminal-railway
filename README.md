@@ -2,7 +2,7 @@
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/kali-linux-20263-web-terminal-browser-she?referralCode=20H68q)
 
-A Kali Linux 2026.3 (kali-rolling) shell you open in any browser, with the command-line tools people reach for first: nmap, masscan, sqlmap, ffuf, gobuster, feroxbuster, nuclei, hydra, john, netexec, impacket and searchsploit. The shell runs in tmux, so sessions and long scans survive closed tabs. A generated password protects it, and your home directory sits on a persistent volume. Need Metasploit or the full Kali tool set? Name it in one variable and Railway bakes it into the image.
+A Kali Linux 2026.3 (kali-rolling) shell you open in any browser, with the command-line tools people reach for first: nmap, sqlmap, ffuf, gobuster, feroxbuster, nuclei, hydra, john, netexec, impacket and searchsploit. The shell runs in tmux, so sessions and long scans survive closed tabs. A generated password protects it, and your home directory sits on a persistent volume. Need Metasploit or the full Kali tool set? Name it in one variable and Railway bakes it into the image.
 
 ## About Hosting Kali Linux 2026.3 Web Terminal
 
@@ -49,7 +49,7 @@ A web terminal needs a long-running Linux container, a terminal server, real aut
 
 | Area | Tools |
 |---|---|
-| Recon | nmap, masscan, dnsrecon, subfinder, httpx (`httpx-toolkit`), theHarvester, whois, dig |
+| Recon | nmap, dnsrecon, subfinder, httpx (`httpx-toolkit`), theHarvester, whois, dig |
 | Web | sqlmap, ffuf, gobuster, feroxbuster, dirb, whatweb, wfuzz, nuclei, sslscan |
 | Passwords | hydra, john, `/usr/share/wordlists` (rockyou and others) |
 | Windows / AD | netexec, impacket scripts, smbclient, enum4linux-ng |
