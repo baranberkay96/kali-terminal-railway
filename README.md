@@ -36,7 +36,7 @@ A web terminal needs a long-running Linux container, a terminal server, real aut
 |---|---|---|
 | Terminal | Dockerfile based on `kalilinux/kali-rolling` | nginx basic-auth proxy on port 8080 (public HTTPS domain, `/healthz`), ttyd on loopback, tmux sessions, user `kali` with sudo, volume at `/home` |
 
-**Plan:** PLAN_LINE
+**Plan:** light enough for any plan. Measured on Railway: about 0.15 GB of RAM idle with an open tmux session, 0.17 GB during an `nmap -sV` scan. The default image installs about 1.8 GB of packages. `KALI_EXTRA_PACKAGES` makes it larger (Metasploit adds about 1.9 GB, `kali-linux-headless` about 4 GB), and heavy tools such as Metasploit need more RAM than the shell alone.
 
 **First login**
 
@@ -62,7 +62,7 @@ A web terminal needs a long-running Linux container, a terminal server, real aut
 
 **Authorized use only**
 
-Kali's tools can scan, brute-force and exploit systems. Use them only against systems you own or have written permission to test. Railway's [Fair Use Policy](https://railway.com/legal/fair-use) and [Terms of Service](https://railway.com/legal/terms) apply to everything that runs in this shell, and scanning or attacking third-party networks from Railway can get your account suspended. NETWORK_LINE
+Kali's tools can scan, brute-force and exploit systems. Use them only against systems you own or have written permission to test. Railway's [Fair Use Policy](https://railway.com/legal/fair-use) and [Terms of Service](https://railway.com/legal/terms) apply to everything that runs in this shell, and scanning or attacking third-party networks from Railway can get your account suspended. Railway containers have no raw-socket access (`CAP_NET_RAW`), so SYN scans (`-sS`), UDP scans, OS detection (`-O`), masscan and packet capture do not work. nmap is set up for TCP connect scans, which work for every user and under sudo, including service and script detection (`nmap -sV -sC`). `ping` works with `sudo`.
 
 **Security**: the shell is never served without a password. With an empty or short `PASSWORD` the service refuses to start. nginx checks the password, which the container keeps only as a SHA-512 crypt hash, and rate-limits attempts. It also rejects WebSocket connections from other sites. ttyd listens on 127.0.0.1 only. The password does not appear in logs, process arguments or the shell environment. To change it, edit `PASSWORD` and redeploy. Browsers cache basic-auth logins until you close them, so use a private window on shared computers.
 
