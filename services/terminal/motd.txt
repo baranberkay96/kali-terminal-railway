@@ -1,0 +1,21 @@
+
+  Kali Linux (kali-rolling) web terminal on Railway
+  --------------------------------------------------------------------------
+  Authorized use only: run these tools only against systems you own or have
+             written permission to test. Railway's Fair Use Policy and Terms
+             apply, and attacking third parties can get the account banned.
+  Saved:     /home/kali is a Railway volume. The rest of the system resets
+             on every redeploy.
+  Sessions:  tmux keeps this shell running when the tab closes. Reopen the URL
+             to resume. New window: Ctrl-b c. Next: Ctrl-b n. Detach: Ctrl-b d.
+             Separate session: add ?arg=work to the URL.
+  Tools:     nmap, masscan, sqlmap, ffuf, gobuster, feroxbuster, nuclei,
+             hydra, john, netexec, impacket-*, enum4linux-ng, searchsploit,
+             wordlists in /usr/share/wordlists. Root: sudo -i.
+  Packages:  sudo apt update && sudo apt install PACKAGE works until the next
+             redeploy. To keep a package (metasploit-framework, or
+             kali-linux-headless for the full set), add it to the
+             KALI_EXTRA_PACKAGES variable: Railway rebuilds the image with it.
+  Copying:   hold Shift while selecting text (tmux mouse mode is on).
+  Banner:    touch ~/.hushlogin hides this message.
+
