@@ -1,6 +1,6 @@
 # Deploy and Host Kali Linux 2026.3 Web Terminal with Railway
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/kali-linux-20263-web-terminal-browser-she?referralCode=20H68q)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/kali-linux-20263-web-terminal-browser-sh?referralCode=20H68q)
 
 A Kali Linux 2026.3 (kali-rolling) shell you open in any browser, with the command-line tools people reach for first: nmap, sqlmap, ffuf, gobuster, feroxbuster, nuclei, hydra, john, netexec, impacket and searchsploit. The shell runs in tmux, so sessions and long scans survive closed tabs. A generated password protects it, and your home directory sits on a persistent volume. Need Metasploit or the full Kali tool set? Name it in one variable and Railway bakes it into the image.
 
