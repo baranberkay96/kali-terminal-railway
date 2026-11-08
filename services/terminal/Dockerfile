@@ -15,8 +15,12 @@ ARG KALI_EXTRA_PACKAGES=""
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Railway containers have no CAP_NET_RAW, so nmap's raw-packet scans (-sS, -O,
+# -sU) cannot work. NMAP_UNPRIVILEGED makes nmap fall back to TCP connect scans
+# (-sT) even under sudo, instead of failing.
 ENV LANG=C.UTF-8 \
-    TZ=UTC
+    TZ=UTC \
+    NMAP_UNPRIVILEGED=1
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -27,7 +31,7 @@ RUN apt-get update \
  && apt-get full-upgrade -y \
  && apt-get install -y --no-install-recommends \
       bash-completion build-essential ca-certificates curl fastfetch file git \
-      htop iproute2 iputils-ping jq less lsof man-db nano ncurses-term \
+      htop iproute2 iputils-ping jq less libcap2-bin lsof man-db nano ncurses-term \
       netcat-traditional nginx openssh-client openssl pipx procps python3-pip \
       python3-venv ripgrep socat sudo tini tmux tree ttyd tzdata unzip vim \
       wget zip \
@@ -60,6 +64,19 @@ RUN set -eux; \
       rm -rf /var/lib/apt/lists/*; \
     fi
 
+# Railway's container capability set lacks NET_RAW and NET_ADMIN, and the
+# kernel refuses to exec a binary whose file capabilities exceed that set:
+# Kali's nmap (cap_net_raw,cap_net_admin) fails with "Operation not permitted"
+# for every user, root included. Stripping the file capabilities lets those
+# tools run with whatever the container allows. Kali's "cloud installation"
+# login banner is turned off; this template prints its own.
+RUN set -eux; \
+    caps="$(getcap -r /usr /opt 2> /dev/null || true)"; \
+    for bin in $(printf '%s\n' "$caps" | awk 'NF {print $1}'); do setcap -r "$bin"; done; \
+    test -z "$(getcap -r /usr /opt 2> /dev/null || true)"; \
+    install -d /etc/kali-motd; \
+    touch /etc/kali-motd/disable-cloud-warning
+
 # The login user. It has a fixed uid 1000 so file ownership on the volume stays
 # stable across image updates. New homes get Kali's default dotfiles plus one
 # line that loads this template's shell defaults.
@@ -67,7 +84,7 @@ RUN set -eux; \
     printf '\n# Kali Web Terminal defaults (prompt, history, PATH). Delete these lines to opt out.\nif [ -r /etc/kali-terminal/bashrc ]; then . /etc/kali-terminal/bashrc; fi\n' \
       >> /etc/skel/.bashrc; \
     useradd --create-home --uid 1000 --user-group --groups sudo --shell /bin/bash kali; \
-    printf 'kali ALL=(ALL:ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/90-kali-terminal; \
+    printf 'Defaults env_keep += "NMAP_UNPRIVILEGED"\nkali ALL=(ALL:ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/90-kali-terminal; \
     chmod 0440 /etc/sudoers.d/90-kali-terminal; \
     visudo -cf /etc/sudoers.d/90-kali-terminal
 
