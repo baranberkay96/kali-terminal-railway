@@ -71,7 +71,8 @@ RUN set -eux; \
 # tools run with whatever the container allows. Kali's /usr/bin/nmap wrapper
 # adds --privileged for non-root users, and its /etc/profile.d/nmap.sh sets
 # NMAP_PRIVILEGED for every login shell. Both only work with those
-# capabilities, so both are diverted away and nmap runs plain. Kali's login
+# capabilities: the wrapper is diverted to the plain nmap binary, and a later
+# profile.d script unsets NMAP_PRIVILEGED again. Kali's login
 # messages ("minimal installation", "cloud installation") are turned off;
 # this template prints its own.
 RUN set -eux; \
@@ -80,7 +81,8 @@ RUN set -eux; \
     test -z "$(getcap -r /usr /opt 2> /dev/null || true)"; \
     dpkg-divert --local --rename --divert /usr/bin/nmap.kali-wrapper --add /usr/bin/nmap; \
     ln -s /usr/lib/nmap/nmap /usr/bin/nmap; \
-    dpkg-divert --local --rename --divert /etc/profile.d/nmap.sh.kali-privileged --add /etc/profile.d/nmap.sh; \
+    printf '# Kali Web Terminal: Railway has no raw sockets, see the Dockerfile.\nunset NMAP_PRIVILEGED\n' \
+      > /etc/profile.d/zz-kali-terminal-nmap.sh; \
     install -d /etc/kali-motd; \
     touch /etc/kali-motd/disable-all
 
