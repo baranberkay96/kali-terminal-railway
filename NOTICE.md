@@ -11,7 +11,7 @@
 | tini 0.19.0 | Kali package `tini` | MIT | Init and child subreaper |
 | nmap, sqlmap, ffuf, gobuster, feroxbuster, dirb, whatweb, wfuzz, nuclei, subfinder, httpx-toolkit, dnsrecon, theHarvester, sslscan, hydra, john, wordlists, netexec, impacket-scripts, smbclient, enum4linux-ng, exploitdb, kali-linux-core and the everyday CLI tools | Kali packages | Each package's own license (nmap: Nmap Public Source License; others GPL, MIT, BSD and similar) | Installed unmodified from the Kali archive |
 
-Changes to installed Kali files: file capabilities are removed from all binaries (Railway's containers cannot exec binaries whose capabilities they lack), Kali's `/usr/bin/nmap` wrapper is diverted with `dpkg-divert` to a symlink to `/usr/lib/nmap/nmap`, and Kali's login messages are turned off through `/etc/kali-motd/disable-all`. No package files are edited.
+Changes to installed Kali files: file capabilities are removed from all binaries (Railway's containers cannot exec binaries whose capabilities they lack), Kali's `/usr/bin/nmap` wrapper is diverted with `dpkg-divert` to a symlink to `/usr/lib/nmap/nmap` and its `/etc/profile.d/nmap.sh` (which sets `NMAP_PRIVILEGED`) is diverted out of `profile.d`, and Kali's login messages are turned off through `/etc/kali-motd/disable-all`. No package files are edited.
 
 Optional packages named in `KALI_EXTRA_PACKAGES` are installed from the Kali archive at build time under their own licenses.
 
