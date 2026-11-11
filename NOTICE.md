@@ -4,7 +4,7 @@
 
 | Component | Source | License | How it is used |
 |---|---|---|---|
-| Kali Linux 2026.3 (kali-rolling) | `kalilinux/kali-rolling` (official image), https://hub.docker.com/r/kalilinux/kali-rolling, pinned by digest `sha256:6ec743d9…` (2026-11-08) | Various free licenses (see `/usr/share/doc/*/copyright` in the image) | Base image (`FROM`) and apt packages |
+| Kali Linux (kali-rolling) | `kalilinux/kali-rolling` (official image), https://hub.docker.com/r/kalilinux/kali-rolling, pinned by digest `sha256:6ec743d9…` (2026-11-08) | Various free licenses (see `/usr/share/doc/*/copyright` in the image) | Base image (`FROM`) and apt packages |
 | ttyd 1.7.7 | Kali package `ttyd` (1.7.7-8) | MIT, Copyright (c) 2016-2022 Shuanglei Tao | Web terminal on loopback, installed unmodified |
 | nginx 1.30 | Kali package `nginx` | BSD-2-Clause | Basic-auth reverse proxy. The config was written for this template |
 | tmux 3.7 | Kali package `tmux` | ISC | Persistent sessions |

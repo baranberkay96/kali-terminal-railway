@@ -1,10 +1,10 @@
-# Deploy and Host Kali Linux 2026.3 Web Terminal with Railway
+# Deploy and Host Kali Linux Web Terminal with Railway
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/kali-linux-20263-web-terminal-browser-sh?referralCode=20H68q)
 
-A Kali Linux 2026.3 (kali-rolling) shell you open in any browser, with the command-line tools people reach for first: nmap, sqlmap, ffuf, gobuster, feroxbuster, nuclei, hydra, john, netexec, impacket and searchsploit. The shell runs in tmux, so sessions and long scans survive closed tabs. A generated password protects it, and your home directory sits on a persistent volume. Need Metasploit or the full Kali tool set? Name it in one variable and Railway bakes it into the image.
+A Kali Linux (kali-rolling) shell you open in any browser, with the command-line tools people reach for first: nmap, sqlmap, ffuf, gobuster, feroxbuster, nuclei, hydra, john, netexec, impacket and searchsploit. The shell runs in tmux, so sessions and long scans survive closed tabs. A generated password protects it, and your home directory sits on a persistent volume. Need Metasploit or the full Kali tool set? Name it in one variable and Railway bakes it into the image.
 
-## About Hosting Kali Linux 2026.3 Web Terminal
+## About Hosting Kali Linux Web Terminal
 
 A web terminal needs a long-running Linux container, a terminal server, real authentication in front of it, TLS, and storage that outlives rebuilds. This community template builds on the official `kalilinux/kali-rolling` image (pinned by digest) and serves the shell with ttyd. nginx stands in front of ttyd and checks a password that Railway generates at deploy, so the login never shows up in logs. You work as the user `kali` with sudo, and `/home` is a Railway volume. Railway's edge provides HTTPS.
 
@@ -15,7 +15,7 @@ A web terminal needs a long-running Linux container, a terminal server, real aut
 - Running long scans and brute-force jobs in tmux and checking back on them later
 - Learning Kali's command-line tools without installing a VM
 
-## Dependencies for Kali Linux 2026.3 Web Terminal Hosting
+## Dependencies for Kali Linux Web Terminal Hosting
 
 - A Railway volume mounted at `/home` (included in the template)
 - Nothing else: no database, no API keys, no external accounts
@@ -70,6 +70,6 @@ Kali's tools can scan, brute-force and exploit systems. Use them only against sy
 
 **Pinning and upgrades**: the Kali base image is pinned by digest on the `FROM` line of `services/terminal/Dockerfile`. Every fresh build runs `apt-get full-upgrade`, which brings the rolling release up to date. Railway may reuse cached build layers, so change the digest to force a fresh one.
 
-### Why Deploy Kali Linux 2026.3 Web Terminal on Railway?
+### Why Deploy Kali Linux Web Terminal on Railway?
 
 Railway gives the terminal an HTTPS URL, a persistent volume and automatic restarts, with no server to administer. You get a protected Kali shell from one click and pay only for the CPU and memory it uses. This is a community template, not affiliated with OffSec, the Kali Linux project, the ttyd author or Railway. Kali Linux is a trademark of OffSec Services Limited.

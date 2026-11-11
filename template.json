@@ -1,5 +1,6 @@
 {
-  "name": "Kali Linux 2026.3 Web Terminal (Browser Shell)",
+  "name": "Kali Linux Web Terminal (Browser Shell)",
+  "idSeed": "Kali Linux 2026.3 Web Terminal (Browser Shell)",
   "description": "Kali shell in your browser: nmap, sqlmap, ffuf, hydra. Password-protected.",
   "category": "Other",
   "tags": [
