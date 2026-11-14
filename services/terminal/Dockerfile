@@ -52,17 +52,37 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Optional extras from KALI_EXTRA_PACKAGES, checked as package names first so
-# the variable cannot inject shell or apt options.
+# the variable cannot inject shell or apt options. A value typed into the
+# deploy form must not fail the build: invalid names and packages that apt
+# cannot install are skipped with a warning (here and in the deploy log, from
+# /etc/kali-terminal/skipped-packages), and the rest is installed.
 RUN set -eux; \
-    read -r -a extra <<< "${KALI_EXTRA_PACKAGES//,/ }"; \
+    install -d -m 0755 /etc/kali-terminal; \
+    : > /etc/kali-terminal/skipped-packages; \
+    read -r -a requested <<< "${KALI_EXTRA_PACKAGES//,/ }"; \
+    extra=(); \
+    for pkg in "${requested[@]}"; do \
+      if [[ "$pkg" =~ ^[a-z0-9][a-z0-9+.-]+$ ]]; then \
+        extra+=("$pkg"); \
+      else \
+        echo "WARNING: KALI_EXTRA_PACKAGES: skipping invalid package name '${pkg:0:64}'" >&2; \
+        printf '%s\n' "${pkg:0:64}" >> /etc/kali-terminal/skipped-packages; \
+      fi; \
+    done; \
     if (( ${#extra[@]} > 0 )); then \
-      for pkg in "${extra[@]}"; do \
-        [[ "$pkg" =~ ^[a-z0-9][a-z0-9+.-]+$ ]] || { echo "KALI_EXTRA_PACKAGES: invalid package name '${pkg:0:64}'" >&2; exit 1; }; \
-      done; \
       apt-get update; \
-      apt-get install -y --no-install-recommends "${extra[@]}"; \
+      if ! apt-get install -y --no-install-recommends "${extra[@]}"; then \
+        echo "WARNING: KALI_EXTRA_PACKAGES: installing '${extra[*]}' together failed. Trying one package at a time." >&2; \
+        for pkg in "${extra[@]}"; do \
+          if ! apt-get install -y --no-install-recommends "$pkg"; then \
+            echo "WARNING: KALI_EXTRA_PACKAGES: skipping '${pkg}', apt could not install it." >&2; \
+            printf '%s\n' "$pkg" >> /etc/kali-terminal/skipped-packages; \
+          fi; \
+        done; \
+      fi; \
       rm -rf /var/lib/apt/lists/*; \
-    fi
+    fi; \
+    chmod 0644 /etc/kali-terminal/skipped-packages
 
 # Railway's container capability set lacks NET_RAW and NET_ADMIN, and the
 # kernel refuses to exec a binary whose file capabilities exceed that set:

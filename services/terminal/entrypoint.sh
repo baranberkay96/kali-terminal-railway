@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Kali Web Terminal entrypoint. It runs as root under tini.
 #
-# 1. Checks PORT, USERNAME and PASSWORD. Without a password of at least 12
-#    characters it refuses to start: this template never serves an open shell.
+# 1. Checks PORT, USERNAME, PASSWORD and TERMINAL_FONT_SIZE. No value fails
+#    the deploy: invalid ports, login names and font sizes fall back to the
+#    defaults with a warning, and without a usable password (12-256 bytes,
+#    one line) the login is locked with a random password nobody knows. This
+#    template never serves an open shell.
 # 2. Creates /home/kali on the Railway volume on first boot.
 # 3. Writes the nginx config: basic auth on $PORT, an unauthenticated /healthz,
 #    and a WebSocket proxy to ttyd. ttyd listens on loopback only.
@@ -17,9 +20,14 @@ readonly AUTH_HEADER="X-WebAuth-User"
 readonly CONFIG_DIR="/etc/kali-terminal"
 readonly HTPASSWD_FILE="/etc/nginx/terminal.htpasswd"
 readonly MIN_PASSWORD_LENGTH=12
+readonly MAX_PASSWORD_BYTES=256
+readonly DEFAULT_PORT=8080
+readonly DEFAULT_USERNAME="kali"
+readonly DEFAULT_FONT_SIZE=15
 
 TTYD_PID=""
 NGINX_PID=""
+LOGIN_LOCKED="false"
 
 log() { printf '[kali-terminal] %s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
@@ -35,31 +43,45 @@ as_user() {
   setpriv --reuid="$LINUX_USER" --regid="$LINUX_USER" --init-groups -- "$@"
 }
 
+# A start that exits on a variable value restart-loops until the healthcheck
+# times out, and Railway counts the deploy as failed. Unusable values are
+# replaced by safe ones with a warning instead.
+lock_login() {
+  log "WARNING: $* The login is locked with a random password nobody knows. Set PASSWORD (${MIN_PASSWORD_LENGTH}-${MAX_PASSWORD_BYTES} characters, one line) in the service Variables and redeploy."
+  PASSWORD="$(openssl rand -hex 32)"
+  LOGIN_LOCKED="true"
+}
+
 validate_settings() {
-  PORT="${PORT:-8080}"
+  PORT="${PORT:-$DEFAULT_PORT}"
   if [[ ! "$PORT" =~ ^[1-9][0-9]{0,4}$ ]] || (( PORT > 65535 )); then
-    die "PORT must be a number between 1 and 65535 (got '${PORT}')."
-  fi
-  if (( PORT == TTYD_PORT )); then
-    die "PORT ${TTYD_PORT} is reserved for the internal ttyd listener. Use another port."
+    log "WARNING: PORT must be a number between 1 and 65535 (got '${PORT:0:32}'). Using ${DEFAULT_PORT}."
+    PORT="$DEFAULT_PORT"
+  elif (( PORT == TTYD_PORT )); then
+    log "WARNING: PORT ${TTYD_PORT} is reserved for the internal ttyd listener. Using ${DEFAULT_PORT}."
+    PORT="$DEFAULT_PORT"
   fi
 
-  USERNAME="${USERNAME:-kali}"
+  USERNAME="${USERNAME:-$DEFAULT_USERNAME}"
   if [[ ! "$USERNAME" =~ ^[A-Za-z0-9._-]{1,64}$ ]]; then
-    die "USERNAME may only contain letters, digits, '.', '_' and '-' (1-64 characters)."
+    log "WARNING: USERNAME may only contain letters, digits, '.', '_' and '-' (1-64 characters). Signing in as '${DEFAULT_USERNAME}' instead."
+    USERNAME="$DEFAULT_USERNAME"
   fi
 
   PASSWORD="${PASSWORD:-}"
   if (( ${#PASSWORD} < MIN_PASSWORD_LENGTH )); then
-    die "PASSWORD is empty or shorter than ${MIN_PASSWORD_LENGTH} characters. Set it in the service Variables. The terminal does not start without a password."
-  fi
-  if [[ "$PASSWORD" == *$'\n'* ]]; then
-    die "PASSWORD must be a single line."
+    lock_login "PASSWORD is empty or shorter than ${MIN_PASSWORD_LENGTH} characters."
+  elif [[ "$PASSWORD" == *$'\n'* ]]; then
+    lock_login "PASSWORD must be a single line."
+  # openssl passwd silently truncates input longer than 256 bytes; count bytes, not characters.
+  elif (( $(printf '%s' "$PASSWORD" | wc -c) > MAX_PASSWORD_BYTES )); then
+    lock_login "PASSWORD is longer than ${MAX_PASSWORD_BYTES} bytes."
   fi
 
-  TERMINAL_FONT_SIZE="${TERMINAL_FONT_SIZE:-15}"
+  TERMINAL_FONT_SIZE="${TERMINAL_FONT_SIZE:-$DEFAULT_FONT_SIZE}"
   if [[ ! "$TERMINAL_FONT_SIZE" =~ ^[1-9][0-9]?$ ]] || (( TERMINAL_FONT_SIZE < 8 || TERMINAL_FONT_SIZE > 40 )); then
-    die "TERMINAL_FONT_SIZE must be a number between 8 and 40 (got '${TERMINAL_FONT_SIZE}')."
+    log "WARNING: TERMINAL_FONT_SIZE must be a number between 8 and 40 (got '${TERMINAL_FONT_SIZE:0:32}'). Using ${DEFAULT_FONT_SIZE}."
+    TERMINAL_FONT_SIZE="$DEFAULT_FONT_SIZE"
   fi
 
   if is_true "${TERMINAL_TMUX:-true}"; then
@@ -67,6 +89,15 @@ validate_settings() {
   else
     export TERMINAL_TMUX="false"
   fi
+}
+
+# KALI_EXTRA_PACKAGES is a build argument. Names the build had to skip are
+# listed in the image, so the deploy log says what is missing.
+report_skipped_packages() {
+  local list="${CONFIG_DIR}/skipped-packages" names
+  [[ -s "$list" ]] || return 0
+  names="$(tr '\n' ' ' < "$list")"
+  log "WARNING: KALI_EXTRA_PACKAGES: not installed at build: ${names% }. Check the names with 'apt-cache search' in the shell and see the build log."
 }
 
 prepare_home() {
@@ -188,6 +219,7 @@ supervise() {
 
 main() {
   validate_settings
+  report_skipped_packages
   prepare_home
   write_proxy_config
   # Only the hash is kept. Neither ttyd, nginx nor the shells see the password.
@@ -196,6 +228,9 @@ main() {
   wait_for_ttyd
   start_nginx
   log "Ready on port ${PORT}: browser login '${USERNAME}', Linux user '${LINUX_USER}', tmux sessions ${TERMINAL_TMUX}."
+  if [[ "$LOGIN_LOCKED" == "true" ]]; then
+    log "WARNING: the login is locked until PASSWORD is fixed (see the warning above)."
+  fi
   supervise
 }
 
