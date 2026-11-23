@@ -24,18 +24,34 @@ ENV LANG=C.UTF-8 \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# System packages: the auth proxy (nginx), the web terminal (ttyd), the init
-# (tini), tmux and everyday shell tools. `apt-get full-upgrade` brings the
-# rolling base up to date.
+# apt retries transient mirror errors (kali-rolling mirrors resync often), and
+# apt-try-install installs optional packages without ever failing the build:
+# on kali-rolling a single package can be uninstallable for a few days.
+COPY apt-try-install.sh /usr/local/sbin/apt-try-install
+RUN chmod 0755 /usr/local/sbin/apt-try-install \
+ && printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-kali-terminal-retries
+
+# The packages the terminal cannot work without: the auth proxy (nginx), the
+# web terminal (ttyd), the init (tini), tmux and the tools the entrypoint
+# uses. `apt-get full-upgrade` brings the rolling base up to date; if the
+# rolling archive is mid-transition it is skipped with a warning (the pinned
+# base still works) instead of failing the build.
 RUN apt-get update \
- && apt-get full-upgrade -y \
+ && { apt-get full-upgrade -y \
+      || { echo "WARNING: apt-get full-upgrade failed; continuing with the base image's packages." >&2; \
+           dpkg --configure -a || true; apt-get install -f -y || true; }; } \
  && apt-get install -y --no-install-recommends \
-      bash-completion build-essential ca-certificates curl fastfetch file git \
-      htop iproute2 iputils-ping jq less libcap2-bin lsof man-db nano ncurses-term \
-      netcat-traditional nginx openssh-client openssl pipx procps python3-pip \
-      python3-venv ripgrep socat sudo tini tmux tree ttyd tzdata unzip vim \
-      wget zip \
+      ca-certificates curl libcap2-bin nginx openssl sudo tini tmux ttyd tzdata \
  && rm -f /etc/nginx/sites-enabled/default \
+ && rm -rf /var/lib/apt/lists/*
+
+# Everyday shell tools (optional: a missing one is skipped, not fatal).
+RUN apt-get update \
+ && apt-try-install \
+      bash-completion build-essential fastfetch file git htop iproute2 \
+      iputils-ping jq less lsof man-db nano ncurses-term netcat-traditional \
+      openssh-client pipx procps python3-pip python3-venv ripgrep socat tree \
+      unzip vim wget zip \
  && rm -rf /var/lib/apt/lists/*
 
 # Command-line security tools. Recon: nmap, dnsrecon, subfinder, httpx,
@@ -43,8 +59,9 @@ RUN apt-get update \
 # wfuzz, nuclei, sslscan. Passwords: hydra, john, wordlists (rockyou).
 # Windows/AD: smbclient, enum4linux-ng, netexec, impacket. Reference:
 # searchsploit (exploitdb). GUI tools are left out: this is a terminal.
+# Optional as above: a tool kali-rolling cannot install today is skipped.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
+ && apt-try-install \
       bind9-dnsutils dirb dnsrecon enum4linux-ng exploitdb feroxbuster ffuf \
       gobuster httpx-toolkit hydra impacket-scripts john kali-linux-core \
       netexec nmap nuclei smbclient sqlmap sslscan subfinder \
@@ -57,8 +74,6 @@ RUN apt-get update \
 # cannot install are skipped with a warning (here and in the deploy log, from
 # /etc/kali-terminal/skipped-packages), and the rest is installed.
 RUN set -eux; \
-    install -d -m 0755 /etc/kali-terminal; \
-    : > /etc/kali-terminal/skipped-packages; \
     read -r -a requested <<< "${KALI_EXTRA_PACKAGES//,/ }"; \
     extra=(); \
     for pkg in "${requested[@]}"; do \
@@ -71,15 +86,7 @@ RUN set -eux; \
     done; \
     if (( ${#extra[@]} > 0 )); then \
       apt-get update; \
-      if ! apt-get install -y --no-install-recommends "${extra[@]}"; then \
-        echo "WARNING: KALI_EXTRA_PACKAGES: installing '${extra[*]}' together failed. Trying one package at a time." >&2; \
-        for pkg in "${extra[@]}"; do \
-          if ! apt-get install -y --no-install-recommends "$pkg"; then \
-            echo "WARNING: KALI_EXTRA_PACKAGES: skipping '${pkg}', apt could not install it." >&2; \
-            printf '%s\n' "$pkg" >> /etc/kali-terminal/skipped-packages; \
-          fi; \
-        done; \
-      fi; \
+      apt-try-install "${extra[@]}"; \
       rm -rf /var/lib/apt/lists/*; \
     fi; \
     chmod 0644 /etc/kali-terminal/skipped-packages
@@ -99,8 +106,10 @@ RUN set -eux; \
     caps="$(getcap -r /usr /opt 2> /dev/null || true)"; \
     for bin in $(printf '%s\n' "$caps" | awk 'NF {print $1}'); do setcap -r "$bin"; done; \
     test -z "$(getcap -r /usr /opt 2> /dev/null || true)"; \
-    dpkg-divert --local --rename --divert /usr/bin/nmap.kali-wrapper --add /usr/bin/nmap; \
-    ln -s /usr/lib/nmap/nmap /usr/bin/nmap; \
+    if [ -x /usr/lib/nmap/nmap ]; then \
+      dpkg-divert --local --rename --divert /usr/bin/nmap.kali-wrapper --add /usr/bin/nmap; \
+      ln -sf /usr/lib/nmap/nmap /usr/bin/nmap; \
+    fi; \
     printf '# Kali Web Terminal: Railway has no raw sockets, see the Dockerfile.\nunset NMAP_PRIVILEGED\n' \
       > /etc/profile.d/zz-kali-terminal-nmap.sh; \
     install -d /etc/kali-motd; \

@@ -91,13 +91,14 @@ validate_settings() {
   fi
 }
 
-# KALI_EXTRA_PACKAGES is a build argument. Names the build had to skip are
+# Optional packages the build had to skip (a KALI_EXTRA_PACKAGES name apt
+# does not know, or a tool kali-rolling could not install that day) are
 # listed in the image, so the deploy log says what is missing.
 report_skipped_packages() {
   local list="${CONFIG_DIR}/skipped-packages" names
   [[ -s "$list" ]] || return 0
   names="$(tr '\n' ' ' < "$list")"
-  log "WARNING: KALI_EXTRA_PACKAGES: not installed at build: ${names% }. Check the names with 'apt-cache search' in the shell and see the build log."
+  log "WARNING: not installed at build: ${names% }. Install them in the shell with 'sudo apt-get update && sudo apt-get install <name>', or check KALI_EXTRA_PACKAGES names with 'apt-cache search'; the build log has details."
 }
 
 prepare_home() {
