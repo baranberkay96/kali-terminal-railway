@@ -4,7 +4,7 @@
 # basic-auth proxy. The shell runs as the non-root user "kali" (passwordless
 # sudo), and /home is a Railway volume. The base image is pinned by digest:
 # change it and redeploy to upgrade.
-FROM kalilinux/kali-rolling:latest@sha256:6ec743d9fc5cd397451eeddeff3869bcfab5de9bd5dec5b1f34cbfbd80313073
+FROM kalilinux/kali-rolling:latest@sha256:69a9a33d98a584a537bd0f7144d20c3b6d23f3bafa9ffcf0cadf4c5f186d02ff
 
 # Extra Kali packages to bake into the image, space separated, for example
 # "metasploit-framework" or "kali-linux-headless". Railway passes the service
@@ -24,19 +24,28 @@ ENV LANG=C.UTF-8 \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# apt retries transient mirror errors (kali-rolling mirrors resync often), and
+# Kali mirrors resync several times a day and the archive has no by-hash
+# index files, so a build can hit a mirror mid-sync. Packages come from Kali's
+# official CDN (kali.download) instead of a random community mirror picked by
+# the http.kali.org redirector; apt retries each download, apt-update retries
+# the whole index update (falling back to the redirector), and
 # apt-try-install installs optional packages without ever failing the build:
 # on kali-rolling a single package can be uninstallable for a few days.
+COPY apt-update.sh /usr/local/sbin/apt-update
 COPY apt-try-install.sh /usr/local/sbin/apt-try-install
-RUN chmod 0755 /usr/local/sbin/apt-try-install \
- && printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-kali-terminal-retries
+RUN chmod 0755 /usr/local/sbin/apt-update /usr/local/sbin/apt-try-install \
+ && printf 'Acquire::Retries "5";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-kali-terminal-retries \
+ && for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do \
+      if [ -f "$f" ]; then sed -i 's|http://http\.kali\.org/kali|http://kali.download/kali|g' "$f"; fi; \
+    done \
+ && grep -rqs 'kali.download/kali' /etc/apt/sources.list /etc/apt/sources.list.d/
 
 # The packages the terminal cannot work without: the auth proxy (nginx), the
 # web terminal (ttyd), the init (tini), tmux and the tools the entrypoint
 # uses. `apt-get full-upgrade` brings the rolling base up to date; if the
 # rolling archive is mid-transition it is skipped with a warning (the pinned
 # base still works) instead of failing the build.
-RUN apt-get update \
+RUN apt-update \
  && { apt-get full-upgrade -y \
       || { echo "WARNING: apt-get full-upgrade failed; continuing with the base image's packages." >&2; \
            dpkg --configure -a || true; apt-get install -f -y || true; }; } \
@@ -46,7 +55,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Everyday shell tools (optional: a missing one is skipped, not fatal).
-RUN apt-get update \
+RUN apt-update \
  && apt-try-install \
       bash-completion build-essential fastfetch file git htop iproute2 \
       iputils-ping jq less lsof man-db nano ncurses-term netcat-traditional \
@@ -60,7 +69,7 @@ RUN apt-get update \
 # Windows/AD: smbclient, enum4linux-ng, netexec, impacket. Reference:
 # searchsploit (exploitdb). GUI tools are left out: this is a terminal.
 # Optional as above: a tool kali-rolling cannot install today is skipped.
-RUN apt-get update \
+RUN apt-update \
  && apt-try-install \
       bind9-dnsutils dirb dnsrecon enum4linux-ng exploitdb feroxbuster ffuf \
       gobuster httpx-toolkit hydra impacket-scripts john kali-linux-core \
@@ -85,7 +94,7 @@ RUN set -eux; \
       fi; \
     done; \
     if (( ${#extra[@]} > 0 )); then \
-      apt-get update; \
+      apt-update; \
       apt-try-install "${extra[@]}"; \
       rm -rf /var/lib/apt/lists/*; \
     fi; \

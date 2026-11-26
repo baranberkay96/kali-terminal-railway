@@ -69,7 +69,7 @@
         },
         "KALI_EXTRA_PACKAGES": {
           "defaultValue": "",
-          "description": "Optional. Extra Kali packages baked into the image at build, e.g. metasploit-framework or kali-linux-headless. Changing it rebuilds.",
+          "description": "Optional. Extra Kali packages baked into the image at build, e.g. metasploit-framework. Big metapackages (kali-linux-headless) need Hobby. Changing it rebuilds.",
           "required": false
         },
         "TZ": {
